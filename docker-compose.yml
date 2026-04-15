@@ -1,0 +1,6 @@
+services:
+  compiler:
+    build: .
+    volumes:
+      - .:/app
+    container_name: roke-compiler
