@@ -25,5 +25,51 @@
             <artifactId>jflex</artifactId>
             <version>1.9.1</version>
         </dependency>
+        <dependency>
+        <groupId>com.formdev</groupId>
+        <artifactId>flatlaf</artifactId>
+        <version>3.4.1</version>
+        </dependency>
     </dependencies>
+    <build>
+    <plugins>
+        <plugin>
+            <groupId>de.jflex</groupId>
+            <artifactId>jflex-maven-plugin</artifactId>
+            <version>1.9.1</version>
+            <executions>
+                <execution>
+                    <goals>
+                        <goal>generate</goal>
+                    </goals>
+                    <configuration>
+                        <lexDefinitions>
+                            <lexDefinition>src/main/java/com/roke/codigo/Lexer.flex</lexDefinition>
+                        </lexDefinitions>
+                        <outputDirectory>src/main/java</outputDirectory>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+
+        <plugin>
+            <groupId>com.github.vbmacher</groupId>
+            <artifactId>cup-maven-plugin</artifactId>
+            <version>11b-20160615</version>
+            <executions>
+                <execution>
+                    <goals>
+                        <goal>generate</goal>
+                    </goals>
+                    <configuration>
+                        <cupDefinition>src/main/java/com/roke/codigo/Parser.cup</cupDefinition>
+                        <outputDirectory>src/main/java</outputDirectory>
+                        <className>Parser</className>
+                        <packageName>com.roke.codigo</packageName>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
 </project>
