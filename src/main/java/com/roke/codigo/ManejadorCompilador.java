@@ -15,7 +15,7 @@ public class ManejadorCompilador {
 
             p.parse();
 
-            terminal.setText("--- Ejecución Finalizada con Éxito ---");
+            terminal.setText("rokev1.0 \n");
 
         } catch (Exception e) {
             alertas.setText("Error en la compilación: \n" + e.getMessage());
