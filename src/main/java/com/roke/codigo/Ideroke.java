@@ -4,17 +4,18 @@ import javax.swing.text.*;
 import java.awt.Color;
 import java_cup.runtime.Symbol;
 
-  
+
 
     public class Ideroke extends javax.swing.JFrame {
 
-        private final Color BG_DARCULA = new Color(43, 43, 43);      // Fondo principal
-        private final Color BG_EDITOR = new Color(43, 43, 43);       // Fondo del editor
-        private final Color BG_SIDEBAR = new Color(60, 63, 65);      // Paneles laterales
+        private final Color BG_DARCULA = new Color(43, 43, 43);      // Color de Fondo Principal
+        private final Color BG_EDITOR = new Color(43, 43, 43);       // Color de Fondo del editor
+        private final Color BG_SIDEBAR = new Color(60, 63, 65);      // Color de los Paneles laterales
         private final Color FG_TEXTO = new Color(187, 187, 187);     // Texto gris claro
-        private final Color BORDER_COLOR = new Color(50, 50, 50);    // Bordes
+        private final Color BORDER_COLOR = new Color(50, 50, 50);    // Color de los Bordes
         private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Ideroke.class.getName());
 
+        //Constructor de la interfaz
         public Ideroke() {
             initComponents();
             aplicarEstiloDarcula();
@@ -330,6 +331,7 @@ import java_cup.runtime.Symbol;
             }
     }
 
+    //Roque was Here
     private String obtenerTokenAmigable(int symID, String lexema) {
         switch (symID) {
             case sym.TIPO_NUMERIN:
@@ -543,7 +545,9 @@ import java_cup.runtime.Symbol;
         }
     }
 
-
+/*Roke es un lenguaje de programacion inspirado en el nombre de un integrante del equipo llamado Roque
+ *diseñado para tener una variable con nombre chistoso
+*/    
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel btnAnalizar;
     private javax.swing.JLabel btnBuild;
