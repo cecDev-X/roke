@@ -6,7 +6,7 @@ public class Duvalin {
     public Duvalin(String valor) {
         this.valor = Double.parseDouble(valor);
     }
-
+    //metodos get y toString
     public double getValor() { return valor; }
     @Override
     public String toString() { return String.valueOf(valor); }
