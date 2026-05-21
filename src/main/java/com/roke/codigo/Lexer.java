@@ -127,10 +127,12 @@ public class Lexer implements java_cup.runtime.Scanner {
                 String numero = numStr.toString();
 
                 if (esDecimal) {
-                    // Nueva validación: 10 dígitos izquierda y 10 derecha para duvalin
                     String[] partes = numero.split("\\.");
+                    if (partes.length != 2 || partes[1].isEmpty()) {
+                        throw new RuntimeException("Error Semantico [Linea " + linea + "]: Numero decimal '" + numero + "' mal formado. Se espera al menos un digito despues del punto (ej. " + numero + "0).");
+                    }
                     String parteEntera = partes[0];
-                    String parteDecimal = (partes.length > 1) ? partes[1] : "";
+                    String parteDecimal = partes[1];
 
                     if (parteEntera.length() > 10 || parteDecimal.length() > 10) {
                         System.err.println("Error Lexico [Linea " + linea + "]: El duvalin '" + numero + "' excede el limite (max 10 enteros y 10 decimales).");

@@ -270,14 +270,13 @@ import java_cup.runtime.Symbol;
     }//GEN-LAST:event_btnSaveMouseClicked
 
     private void btnAnalizarMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnAnalizarMouseClicked
-            
+
             textpaneTabla.setText("");
-            textPaneAlertas.setText(""); // Limpiamos alertas antes de empezar
+            textPaneAlertas.setText("");
 
             StringBuilder tablaHTML = new StringBuilder("<html><body style='color:#bd93f9; font-family:sans-serif;'>");
             tablaHTML.append("<table border='0' cellspacing='1' cellpadding='4' width='100%' bgcolor='#282a36'>");
 
-            // 1. Tabla sin la columna COMPONENTE
             tablaHTML.append("<tr bgcolor='#44475a'>")
                     .append("<th>TOKEN</th>")
                     .append("<th>LEXEMA</th>")
@@ -285,7 +284,6 @@ import java_cup.runtime.Symbol;
                     .append("<th>RESERVADA</th>")
                     .append("</tr>");
 
-            StringBuilder outputAlertas = new StringBuilder("--- RESULTADOS DEL ANÁLISIS ---\n");
             String codigo = textPaneCodigo.getText();
             Lexer lexer = new Lexer(new java.io.StringReader(codigo));
 
@@ -296,7 +294,6 @@ import java_cup.runtime.Symbol;
                         break;
                     }
 
-                    String nombreComponente = obtenerNombreToken(token.sym);
                     String lexema = (token.value != null) ? token.value.toString() : "—";
                     String patron = obtenerPatronRegEx(token.sym);
                     String tokenAmigable = obtenerTokenAmigable(token.sym, lexema);
@@ -305,11 +302,6 @@ import java_cup.runtime.Symbol;
                     String txtReservada = reservada ? "SI" : "NO";
                     String colorFila = reservada ? "#50fa7b" : "#ff5555";
 
-                    // 2. Acumulamos Lexema y Componente para el panel de alertas
-                    outputAlertas.append("Lexema: ").append(lexema)
-                            .append("  |  Componente: ").append(nombreComponente).append("\n");
-
-                    // 3. Llenamos la tabla (ya sin la celda de componente)
                     tablaHTML.append("<tr>")
                             .append("<td style='color:#8be9fd;'><b>").append(tokenAmigable).append("</b></td>")
                             .append("<td style='color:#f8f8f2;'>").append(lexema).append("</td>")
@@ -318,15 +310,45 @@ import java_cup.runtime.Symbol;
                             .append("</tr>");
                 }
 
-                // 4. Mandamos los resultados a sus respectivos paneles
                 tablaHTML.append("</table></body></html>");
                 textpaneTabla.setContentType("text/html");
                 textpaneTabla.setText(tablaHTML.toString());
 
-                textPaneAlertas.setText(outputAlertas.toString());
+            } catch (Exception e) {
+                textpaneTabla.setText("Error en el análisis léxico: " + e.getMessage());
+            }
+
+            // --- Gramática: tabla de estructura gramatical ---
+            StringBuilder gramaticaHTML = new StringBuilder("<html><body style='color:#bd93f9; font-family:Monospaced; font-size:12px; background-color:#2b2b2b;'>");
+            gramaticaHTML.append("<table border='0' cellspacing='1' cellpadding='6' width='100%' bgcolor='#282a36'>");
+            gramaticaHTML.append("<tr bgcolor='#44475a'>")
+                    .append("<th>CÓDIGO</th>")
+                    .append("<th>ESTRUCTURA</th>")
+                    .append("</tr>");
+
+            try {
+                java.util.List<AnalizadorEstructural.LineaGramatica> lineas = AnalizadorEstructural.analizar(codigo);
+                for (AnalizadorEstructural.LineaGramatica lg : lineas) {
+                    String codigoEsc = lg.codigoOriginal
+                            .replace("&", "&amp;")
+                            .replace("<", "&lt;")
+                            .replace(">", "&gt;");
+                    String estEsc = lg.estructura
+                            .replace("&", "&amp;")
+                            .replace("<", "&lt;")
+                            .replace(">", "&gt;");
+                    gramaticaHTML.append("<tr>")
+                            .append("<td style='color:#f8f8f2;'>").append(codigoEsc).append("</td>")
+                            .append("<td style='color:#ffb86c;'>").append(estEsc).append("</td>")
+                            .append("</tr>");
+                }
+
+                gramaticaHTML.append("</table></body></html>");
+                textPaneAlertas.setContentType("text/html");
+                textPaneAlertas.setText(gramaticaHTML.toString());
 
             } catch (Exception e) {
-                textPaneAlertas.setText("Error en el análisis léxico visual: " + e.getMessage());
+                textPaneAlertas.setText("Error en el análisis gramatical: " + e.getMessage());
             }
     }
 
@@ -367,11 +389,16 @@ import java_cup.runtime.Symbol;
 // MÉTODO AUXILIAR (Añádelo debajo de tus otros métodos en Ideroke)
 
     private boolean esPalabraReservada(int idSimb) {
-        // Aquí pon todos los tokens que consideres palabras reservadas de Roke
         return idSimb == sym.TIPO_NUMERIN
                 || idSimb == sym.TIPO_DUVALIN
                 || idSimb == sym.TIPO_TXT
-                || idSimb == sym.VER;
+                || idSimb == sym.VER
+                || idSimb == sym.ASIGNACION
+                || idSimb == sym.FIN_SENTENCIA
+                || idSimb == sym.MAS
+                || idSimb == sym.MENOS
+                || idSimb == sym.MULT
+                || idSimb == sym.DIV;
     }//GEN-LAST:event_btnAnalizarMouseClicked
 
     public static void main(String args[]) {
@@ -469,7 +496,7 @@ import java_cup.runtime.Symbol;
         javax.swing.border.Border lineBorder = javax.swing.BorderFactory.createLineBorder(BORDER_COLOR);
         scrollPaneCodigo.setBorder(lineBorder);
         scrollPaneTerminal.setBorder(javax.swing.BorderFactory.createTitledBorder(lineBorder, "TERMINAL", 0, 0, null, FG_TEXTO));
-        jScrollPane1.setBorder(javax.swing.BorderFactory.createTitledBorder(lineBorder, "ALERTAS", 0, 0, null, FG_TEXTO));
+        jScrollPane1.setBorder(javax.swing.BorderFactory.createTitledBorder(lineBorder, "GRAMÁTICA", 0, 0, null, FG_TEXTO));
         lblRoke.setForeground(new Color(152, 118, 170)); //morad
     }
 
@@ -511,13 +538,13 @@ import java_cup.runtime.Symbol;
     private String obtenerPatronRegEx(int id) {
         switch (id) {
             case sym.TIPO_NUMERIN:
-                return "numerin";
+                return "\\w+";
             case sym.TIPO_DUVALIN:
-                return "duvalin";
+                return "\\w+";
             case sym.TIPO_TXT:
-                return "txt";
+                return "\\w+";
             case sym.ID:
-                return "[a-z][a-zA-Z0-9]*";
+                return "[a-z][a-zA-Z0-9]+";
             case sym.VALOR_ENTERO:
                 return "[0-9]+";
             case sym.VALOR_DECIMAL:
@@ -537,7 +564,7 @@ import java_cup.runtime.Symbol;
             case sym.DIV:
                 return "\\/";
             case sym.VER:
-                return "ver";
+                return "\\w+";
             default:
                 return "—";
         }

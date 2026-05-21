@@ -49,55 +49,59 @@ public class Parser {
             } else {
                 System.err.println("Error: El valor a mostrar es nulo.");
             }
-        } // 2. DECLARACIÓN NUEVA (numerin, duvalin, txt)
-        else if (tokenActual.sym == sym.TIPO_NUMERIN || tokenActual.sym == sym.TIPO_DUVALIN || tokenActual.sym == sym.TIPO_TXT) {
-            int tipo = tokenActual.sym;
-            avanzar();
-
-            String id = (String) tokenActual.value;
-            comer(sym.ID);
-            comer(sym.ASIGNACION);
-
-            Object v = expresion();
-            comer(sym.FIN_SENTENCIA);
-
-            if (tabla.buscar(id) != null) {
-                System.err.println("Error Semantico: La variable '" + id + "' ya ha sido declarada.");
-            } else {
-                if (tipo == sym.TIPO_NUMERIN && v instanceof Numerin) {
-                    tabla.insertar(id, v);
-                    System.out.println("-> Roke: " + id + " guardado con valor " + v.toString());
-                } else if (tipo == sym.TIPO_DUVALIN && v instanceof Duvalin) {
-                    tabla.insertar(id, v);
-                    System.out.println("-> Roke: " + id + " guardado con valor " + v.toString());
-                } else if (tipo == sym.TIPO_TXT && v instanceof Txt) {
-                    tabla.insertar(id, v);
-                    System.out.println("-> Roke: " + id + " guardado con valor " + v.toString());
-                } else {
-                    System.err.println("Error de Tipo: El valor asignado no coincide con el tipo de la variable '" + id + "'.");
-                }
-            }
-        } // 3. REASIGNACIÓN (ID -> expresion $)
+        }
+        // 2. ID al inicio -> puede ser DECLARACIÓN NUEVA (id tipo -> expresion $)
+        //    o REASIGNACIÓN (id -> expresion $)
         else if (tokenActual.sym == sym.ID) {
             String id = (String) tokenActual.value;
             comer(sym.ID);
-            comer(sym.ASIGNACION);
 
-            Object v = expresion();
-            comer(sym.FIN_SENTENCIA);
+            if (tokenActual.sym == sym.TIPO_NUMERIN || tokenActual.sym == sym.TIPO_DUVALIN || tokenActual.sym == sym.TIPO_TXT) {
+                int tipo = tokenActual.sym;
+                comer(tipo);
+                comer(sym.ASIGNACION);
 
-            Object variableExistente = tabla.buscar(id);
-            if (variableExistente == null) {
-                System.err.println("Error Semantico: La variable '" + id + "' no ha sido definida.");
-            } else {
-                if (variableExistente.getClass().isInstance(v)) {
-                    tabla.insertar(id, v);
-                    System.out.println("-> Roke: " + id + " actualizado a " + v.toString());
+                Object v = expresion();
+                comer(sym.FIN_SENTENCIA);
+
+                if (tabla.buscar(id) != null) {
+                    System.err.println("Error Semantico: La variable '" + id + "' ya ha sido declarada.");
                 } else {
-                    System.err.println("Error de Tipo: No puedes asignar " + v.getClass().getSimpleName() + " a " + id);
+                    if (tipo == sym.TIPO_NUMERIN && v instanceof Numerin) {
+                        tabla.insertar(id, v);
+                        System.out.println("-> Roke: " + id + " guardado con valor " + v.toString());
+                    } else if (tipo == sym.TIPO_DUVALIN && v instanceof Duvalin) {
+                        tabla.insertar(id, v);
+                        System.out.println("-> Roke: " + id + " guardado con valor " + v.toString());
+                    } else if (tipo == sym.TIPO_TXT && v instanceof Txt) {
+                        tabla.insertar(id, v);
+                        System.out.println("-> Roke: " + id + " guardado con valor " + v.toString());
+                    } else {
+                        System.err.println("Error de Tipo: El valor asignado no coincide con el tipo de la variable '" + id + "'.");
+                    }
                 }
+            } else if (tokenActual.sym == sym.ASIGNACION) {
+                comer(sym.ASIGNACION);
+
+                Object v = expresion();
+                comer(sym.FIN_SENTENCIA);
+
+                Object variableExistente = tabla.buscar(id);
+                if (variableExistente == null) {
+                    System.err.println("Error Semantico: La variable '" + id + "' no ha sido definida.");
+                } else {
+                    if (variableExistente.getClass().isInstance(v)) {
+                        tabla.insertar(id, v);
+                        System.out.println("-> Roke: " + id + " actualizado a " + v.toString());
+                    } else {
+                        System.err.println("Error de Tipo: No puedes asignar " + v.getClass().getSimpleName() + " a " + id);
+                    }
+                }
+            } else {
+                System.err.println("Error Sintactico: Se esperaba un tipo o asignacion despues del identificador '" + id + "'.");
             }
-        } // Si no es ninguna de las anteriores, hay basura en el código
+        }
+        // Si no es ninguna de las anteriores, hay basura en el código
         else {
             System.err.println("Error Sintactico: Instruccion no reconocida comenzando con " + tokenActual.value);
             avanzar(); // Consumimos el error para no ciclar infinitamente
