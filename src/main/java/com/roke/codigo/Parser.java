@@ -36,8 +36,40 @@ public class Parser {
         System.out.println("Analisis finalizado.");
     }
 
-    // --- REGLAS DE DECLARACIÓN, REASIGNACIÓN Y SALIDA ---
+    // --- MÉTODO AUXILIAR PARA VERIFICAR OPERADORES DE COMPARACIÓN ---
+    private boolean esComparacion(int tipo) {
+        return tipo == sym.IGUAL_A || tipo == sym.DIFERENTE ||
+               tipo == sym.MAYOR_QUE || tipo == sym.MENOR_QUE ||
+               tipo == sym.MAYOR_IGUAL || tipo == sym.MENOR_IGUAL;
+    }
+
+    // --- REGLAS DE DECLARACIÓN, REASIGNACIÓN, SALIDA Y CONTROL ---
     private void declaracion() throws Exception {
+        // 0. SI (condicion) { ... } $
+        if (tokenActual.sym == sym.SI) {
+            comer(sym.SI);
+            comer(sym.PARENTESIS_A);
+
+            boolean condicionResultado = condicion();
+
+            comer(sym.PARENTESIS_C);
+            comer(sym.LLAVE_A);
+
+            if (condicionResultado) {
+                tabla.entrarBloque();
+                while (tokenActual.sym != sym.LLAVE_C && tokenActual.sym != sym.EOF) {
+                    declaracion();
+                }
+                tabla.salirBloque();
+            } else {
+                saltarHastaLLaveC();
+            }
+
+            comer(sym.LLAVE_C);
+            comer(sym.FIN_SENTENCIA);
+            return;
+        }
+
         // 1. VER expresion FIN_SENTENCIA
         if (tokenActual.sym == sym.VER) {
             comer(sym.VER);
@@ -203,5 +235,73 @@ public class Parser {
         }
 
         return resultado;
+    }
+
+    // --- LÓGICA DE CONDICIONES (COMPARACIONES) ---
+    private boolean condicion() throws Exception {
+        Object izquierdo = expresion();
+
+        if (!esComparacion(tokenActual.sym)) {
+            System.err.println("Error Sintactico [Linea " + tokenActual.left + "]: Se esperaba un operador de comparacion (==, !=, >, <, >=, <=)");
+            return false;
+        }
+
+        int operador = tokenActual.sym;
+        avanzar();
+        Object derecho = expresion();
+
+        return evaluarComparacion(izquierdo, operador, derecho);
+    }
+
+    private boolean evaluarComparacion(Object izquierdo, int operador, Object derecho) {
+        if (izquierdo instanceof Numerin && derecho instanceof Numerin) {
+            int a = ((Numerin) izquierdo).getValor();
+            int b = ((Numerin) derecho).getValor();
+            return aplicarComparacion((double) a, (double) b, operador);
+        } else if (izquierdo instanceof Duvalin && derecho instanceof Duvalin) {
+            double a = ((Duvalin) izquierdo).getValor();
+            double b = ((Duvalin) derecho).getValor();
+            return aplicarComparacion(a, b, operador);
+        } else if (izquierdo instanceof Txt && derecho instanceof Txt) {
+            String a = ((Txt) izquierdo).getValor();
+            String b = ((Txt) derecho).getValor();
+            if (operador == sym.IGUAL_A) return a.equals(b);
+            if (operador == sym.DIFERENTE) return !a.equals(b);
+            System.err.println("Error Semantico: No se puede comparar texto con >, <, >=, <=");
+            return false;
+        } else {
+            System.err.println("Error Semantico: Tipos incompatibles para comparacion");
+            return false;
+        }
+    }
+
+    private boolean aplicarComparacion(double a, double b, int operador) {
+        switch (operador) {
+            case sym.IGUAL_A:    return a == b;
+            case sym.DIFERENTE:   return a != b;
+            case sym.MAYOR_QUE:   return a > b;
+            case sym.MENOR_QUE:   return a < b;
+            case sym.MAYOR_IGUAL: return a >= b;
+            case sym.MENOR_IGUAL: return a <= b;
+            default: return false;
+        }
+    }
+
+    // --- SALTO DE BLOQUE (Cuando la condición es falsa) ---
+    private void saltarHastaLLaveC() throws Exception {
+        int profundidad = 1;
+        while (profundidad > 0 && tokenActual.sym != sym.EOF) {
+            if (tokenActual.sym == sym.LLAVE_A) {
+                profundidad++;
+                avanzar();
+            } else if (tokenActual.sym == sym.LLAVE_C) {
+                profundidad--;
+                if (profundidad > 0) {
+                    avanzar();
+                }
+            } else {
+                avanzar();
+            }
+        }
     }
 }

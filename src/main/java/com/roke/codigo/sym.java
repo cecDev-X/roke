@@ -17,6 +17,17 @@ public interface sym {
   public static final int VALOR_ENTERO = 12;
   public static final int TIPO_NUMERIN = 2;
   public static final int VALOR_TXT = 14;
+  public static final int SI = 16;
+  public static final int PARENTESIS_A = 17;
+  public static final int PARENTESIS_C = 18;
+  public static final int LLAVE_A = 19;
+  public static final int LLAVE_C = 20;
+  public static final int IGUAL_A = 21;
+  public static final int DIFERENTE = 22;
+  public static final int MAYOR_QUE = 23;
+  public static final int MENOR_QUE = 24;
+  public static final int MAYOR_IGUAL = 25;
+  public static final int MENOR_IGUAL = 26;
   public static final String[] terminalNames = new String[] {
   "EOF",
   "error",
@@ -33,7 +44,18 @@ public interface sym {
   "VALOR_ENTERO",
   "VALOR_DECIMAL",
   "VALOR_TXT",
-  "ID"
+  "ID",
+  "SI",
+  "PARENTESIS_A",
+  "PARENTESIS_C",
+  "LLAVE_A",
+  "LLAVE_C",
+  "IGUAL_A",
+  "DIFERENTE",
+  "MAYOR_QUE",
+  "MENOR_QUE",
+  "MAYOR_IGUAL",
+  "MENOR_IGUAL"
   };
 }
 

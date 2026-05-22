@@ -92,7 +92,59 @@ public class Lexer implements java_cup.runtime.Scanner {
                 return symbol(sym.FIN_SENTENCIA, "$");
             }
 
-            // 4. STRINGS (Textos entre comillas)
+            // 4. DELIMITADORES Y OPERADORES DE COMPARACIÓN
+            if (actual == '(') {
+                pos++; columna++;
+                return symbol(sym.PARENTESIS_A, "(");
+            }
+            if (actual == ')') {
+                pos++; columna++;
+                return symbol(sym.PARENTESIS_C, ")");
+            }
+            if (actual == '{') {
+                pos++; columna++;
+                return symbol(sym.LLAVE_A, "{");
+            }
+            if (actual == '}') {
+                pos++; columna++;
+                return symbol(sym.LLAVE_C, "}");
+            }
+            if (actual == '=') {
+                if (pos + 1 < codigo.length() && codigo.charAt(pos + 1) == '=') {
+                    pos += 2; columna += 2;
+                    return symbol(sym.IGUAL_A, "==");
+                }
+                System.err.println("Error Lexico [Linea " + linea + "]: Caracter '=' no reconocido. ¿Quisiste decir '=='?");
+                pos++; columna++;
+                continue;
+            }
+            if (actual == '!') {
+                if (pos + 1 < codigo.length() && codigo.charAt(pos + 1) == '=') {
+                    pos += 2; columna += 2;
+                    return symbol(sym.DIFERENTE, "!=");
+                }
+                System.err.println("Error Lexico [Linea " + linea + "]: Caracter '!' no reconocido.");
+                pos++; columna++;
+                continue;
+            }
+            if (actual == '>') {
+                if (pos + 1 < codigo.length() && codigo.charAt(pos + 1) == '=') {
+                    pos += 2; columna += 2;
+                    return symbol(sym.MAYOR_IGUAL, ">=");
+                }
+                pos++; columna++;
+                return symbol(sym.MAYOR_QUE, ">");
+            }
+            if (actual == '<') {
+                if (pos + 1 < codigo.length() && codigo.charAt(pos + 1) == '=') {
+                    pos += 2; columna += 2;
+                    return symbol(sym.MENOR_IGUAL, "<=");
+                }
+                pos++; columna++;
+                return symbol(sym.MENOR_QUE, "<");
+            }
+
+            // 6. STRINGS (Textos entre comillas)
             if (actual == '"') {
                 StringBuilder texto = new StringBuilder();
                 pos++;
@@ -147,7 +199,7 @@ public class Lexer implements java_cup.runtime.Scanner {
                 }
             }
 
-            // 6. PALABRAS RESERVADAS E IDENTIFICADORES
+            // 7. PALABRAS RESERVADAS E IDENTIFICADORES
             if (Character.isLetter(actual) || actual == '_') {
                 StringBuilder palabraStr = new StringBuilder();
 
@@ -169,12 +221,14 @@ public class Lexer implements java_cup.runtime.Scanner {
                         return symbol(sym.TIPO_TXT, palabra);
                     case "ver":
                         return symbol(sym.VER, palabra);
+                    case "si":
+                        return symbol(sym.SI, palabra);
                     default:
                         return symbol(sym.ID, palabra);
                 }
             }
 
-            // 7. MANEJO DE CARACTERES DESCONOCIDOS (Error léxico)
+            // 8. MANEJO DE CARACTERES DESCONOCIDOS (Error léxico)
             System.err.println("Error Lexico: Caracter no reconocido '" + actual + "' en linea " + linea);
             pos++;
             columna++;
