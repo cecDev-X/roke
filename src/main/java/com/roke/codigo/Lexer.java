@@ -10,22 +10,19 @@ public class Lexer implements java_cup.runtime.Scanner {
     private int linea = 1;
     private int columna = 1;
 
-    // Constructor que CUP usa por defecto (recibe un Reader)
     public Lexer(Reader reader) {
         StringBuilder sb = new StringBuilder();
         try {
             int ch;
-            // Leemos todo el archivo y lo guardamos en un String para manipularlo más fácil
             while ((ch = reader.read()) != -1) {
                 sb.append((char) ch);
             }
         } catch (Exception e) {
-            System.err.println("Error al leer el archivo fuente.");
+            ManejadorErrores.reportar(TipoError.LEXICO, 0, 0, "Error al leer el archivo fuente.");
         }
         this.codigo = sb.toString();
     }
 
-    // Métodos de ayuda para crear tokens (compatibilidad con CUP)
     private Symbol symbol(int type) {
         return new Symbol(type, linea, columna);
     }
@@ -39,7 +36,6 @@ public class Lexer implements java_cup.runtime.Scanner {
         while (pos < codigo.length()) {
             char actual = codigo.charAt(pos);
 
-            // 1. IGNORAR ESPACIOS Y SALTOS DE LÍNEA
             if (Character.isWhitespace(actual)) {
                 if (actual == '\n') {
                     linea++;
@@ -51,7 +47,6 @@ public class Lexer implements java_cup.runtime.Scanner {
                 continue;
             }
 
-            // 2. COMENTARIOS (Ignorar todo hasta el final de la línea)
             if (actual == '#') {
                 while (pos < codigo.length() && codigo.charAt(pos) != '\n') {
                     pos++;
@@ -60,16 +55,15 @@ public class Lexer implements java_cup.runtime.Scanner {
                 continue;
             }
 
-            // 3. OPERADORES Y SÍMBOLOS ESPECIALES
             if (actual == '-') {
                 if (pos + 1 < codigo.length() && codigo.charAt(pos + 1) == '>') {
                     pos += 2;
                     columna += 2;
-                    return symbol(sym.ASIGNACION, "->"); // <-- Agregamos el lexema
+                    return symbol(sym.ASIGNACION, "->");
                 }
                 pos++;
                 columna++;
-                return symbol(sym.MENOS, "-"); // <-- Agregamos el lexema
+                return symbol(sym.MENOS, "-");
             }
             if (actual == '+') {
                 pos++;
@@ -92,7 +86,6 @@ public class Lexer implements java_cup.runtime.Scanner {
                 return symbol(sym.FIN_SENTENCIA, "$");
             }
 
-            // 4. DELIMITADORES Y OPERADORES DE COMPARACIÓN
             if (actual == '(') {
                 pos++; columna++;
                 return symbol(sym.PARENTESIS_A, "(");
@@ -114,8 +107,10 @@ public class Lexer implements java_cup.runtime.Scanner {
                     pos += 2; columna += 2;
                     return symbol(sym.IGUAL_A, "==");
                 }
-                System.err.println("Error Lexico [Linea " + linea + "]: Caracter '=' no reconocido. ¿Quisiste decir '=='?");
-                pos++; columna++;
+                ManejadorErrores.reportar(TipoError.LEXICO, linea, columna,
+                    "Caracter '=' no reconocido. ¿Quisiste decir '=='?", "=");
+                pos++;
+                columna++;
                 continue;
             }
             if (actual == '!') {
@@ -123,8 +118,10 @@ public class Lexer implements java_cup.runtime.Scanner {
                     pos += 2; columna += 2;
                     return symbol(sym.DIFERENTE, "!=");
                 }
-                System.err.println("Error Lexico [Linea " + linea + "]: Caracter '!' no reconocido.");
-                pos++; columna++;
+                ManejadorErrores.reportar(TipoError.LEXICO, linea, columna,
+                    "Caracter '!' no reconocido.", "!");
+                pos++;
+                columna++;
                 continue;
             }
             if (actual == '>') {
@@ -144,11 +141,10 @@ public class Lexer implements java_cup.runtime.Scanner {
                 return symbol(sym.MENOR_QUE, "<");
             }
 
-            // 6. STRINGS (Textos entre comillas)
             if (actual == '"') {
                 StringBuilder texto = new StringBuilder();
                 pos++;
-                columna++; // Saltamos la primera comilla
+                columna++;
 
                 while (pos < codigo.length() && codigo.charAt(pos) != '"') {
                     texto.append(codigo.charAt(pos));
@@ -157,15 +153,14 @@ public class Lexer implements java_cup.runtime.Scanner {
                 }
 
                 pos++;
-                columna++; // Saltamos la última comilla
+                columna++;
                 return symbol(sym.VALOR_TXT, texto.toString());
             }
 
-            // 5. NÚMEROS (Enteros y Decimales con tus propios límites lógicos)
-            // 5. NÚMEROS (Enteros y Decimales)
             if (Character.isDigit(actual)) {
                 StringBuilder numStr = new StringBuilder();
                 boolean esDecimal = false;
+                int inicioColumna = columna;
 
                 while (pos < codigo.length() && (Character.isDigit(codigo.charAt(pos)) || codigo.charAt(pos) == '.')) {
                     if (codigo.charAt(pos) == '.') {
@@ -181,25 +176,27 @@ public class Lexer implements java_cup.runtime.Scanner {
                 if (esDecimal) {
                     String[] partes = numero.split("\\.");
                     if (partes.length != 2 || partes[1].isEmpty()) {
-                        throw new RuntimeException("Error Semantico [Linea " + linea + "]: Numero decimal '" + numero + "' mal formado. Se espera al menos un digito despues del punto (ej. " + numero + "0).");
+                        ManejadorErrores.reportar(TipoError.SEMANTICO, linea, inicioColumna,
+                            "Número decimal '" + numero + "' mal formado. Se espera al menos un dígito después del punto.", numero);
+                        return symbol(sym.VALOR_DECIMAL, numero);
                     }
                     String parteEntera = partes[0];
                     String parteDecimal = partes[1];
 
                     if (parteEntera.length() > 10 || parteDecimal.length() > 10) {
-                        System.err.println("Error Lexico [Linea " + linea + "]: El duvalin '" + numero + "' excede el limite (max 10 enteros y 10 decimales).");
+                        ManejadorErrores.reportar(TipoError.LEXICO, linea, inicioColumna,
+                            "El duvalin '" + numero + "' excede el límite (max 10 enteros y 10 decimales).", numero);
                     }
                     return symbol(sym.VALOR_DECIMAL, numero);
                 } else {
-                    // Límite para numerin (enteros)
                     if (numero.length() > 10) {
-                        System.err.println("Error Lexico [Linea " + linea + "]: El numerin '" + numero + "' excede los 10 dígitos.");
+                        ManejadorErrores.reportar(TipoError.LEXICO, linea, inicioColumna,
+                            "El numerin '" + numero + "' excede los 10 dígitos.", numero);
                     }
                     return symbol(sym.VALOR_ENTERO, numero);
                 }
             }
 
-            // 7. PALABRAS RESERVADAS E IDENTIFICADORES
             if (Character.isLetter(actual) || actual == '_') {
                 StringBuilder palabraStr = new StringBuilder();
 
@@ -211,7 +208,6 @@ public class Lexer implements java_cup.runtime.Scanner {
 
                 String palabra = palabraStr.toString();
 
-                // Usamos un switch de Java normal en lugar de un autómata complejo
                 switch (palabra) {
                     case "numerin":
                         return symbol(sym.TIPO_NUMERIN, palabra);
@@ -228,13 +224,12 @@ public class Lexer implements java_cup.runtime.Scanner {
                 }
             }
 
-            // 8. MANEJO DE CARACTERES DESCONOCIDOS (Error léxico)
-            System.err.println("Error Lexico: Caracter no reconocido '" + actual + "' en linea " + linea);
+            ManejadorErrores.reportar(TipoError.LEXICO, linea, columna,
+                "Caracter no reconocido '" + actual + "'.", String.valueOf(actual));
             pos++;
             columna++;
         }
 
-        // Cuando el ciclo while termina, llegamos al fin del archivo
         return symbol(sym.EOF);
     }
 }

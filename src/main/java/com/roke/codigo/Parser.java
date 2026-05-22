@@ -12,7 +12,6 @@ public class Parser {
         this.lexer = lexer;
     }
 
-    // --- MÉTODOS DE CONTROL ---
     private void avanzar() throws Exception {
         tokenActual = lexer.next_token();
     }
@@ -21,31 +20,28 @@ public class Parser {
         if (tokenActual.sym == tipoEsperado) {
             avanzar();
         } else {
-            System.err.println("Error Sintactico [Linea " + tokenActual.left + ", Columna " + tokenActual.right + "]: Se esperaba un componente diferente. Token encontrado: " + tokenActual.value);
-            // Opcional: Aquí podrías hacer que avance hasta el próximo '$' para recuperar el error
+            ManejadorErrores.reportar(TipoError.SINTACTICO, tokenActual.left, tokenActual.right,
+                "Se esperaba un componente diferente. Token encontrado: " + tokenActual.value,
+                tokenActual.value != null ? tokenActual.value.toString() : "");
             avanzar();
         }
     }
 
-    // --- PUNTO DE ENTRADA (inicio ::= lista_declaraciones) ---
     public void parse() throws Exception {
-        avanzar(); // Cargamos el primer token
+        avanzar();
         while (tokenActual.sym != sym.EOF) {
             declaracion();
         }
         System.out.println("Analisis finalizado.");
     }
 
-    // --- MÉTODO AUXILIAR PARA VERIFICAR OPERADORES DE COMPARACIÓN ---
     private boolean esComparacion(int tipo) {
         return tipo == sym.IGUAL_A || tipo == sym.DIFERENTE ||
                tipo == sym.MAYOR_QUE || tipo == sym.MENOR_QUE ||
                tipo == sym.MAYOR_IGUAL || tipo == sym.MENOR_IGUAL;
     }
 
-    // --- REGLAS DE DECLARACIÓN, REASIGNACIÓN, SALIDA Y CONTROL ---
     private void declaracion() throws Exception {
-        // 0. SI (condicion) { ... } $
         if (tokenActual.sym == sym.SI) {
             comer(sym.SI);
             comer(sym.PARENTESIS_A);
@@ -66,11 +62,9 @@ public class Parser {
             }
 
             comer(sym.LLAVE_C);
-            comer(sym.FIN_SENTENCIA);
             return;
         }
 
-        // 1. VER expresion FIN_SENTENCIA
         if (tokenActual.sym == sym.VER) {
             comer(sym.VER);
             Object e = expresion();
@@ -79,13 +73,13 @@ public class Parser {
             if (e != null) {
                 System.out.println("> " + e.toString());
             } else {
-                System.err.println("Error: El valor a mostrar es nulo.");
+                ManejadorErrores.reportar(TipoError.SEMANTICO, 0, 0, "El valor a mostrar es nulo.");
             }
         }
-        // 2. ID al inicio -> puede ser DECLARACIÓN NUEVA (id tipo -> expresion $)
-        //    o REASIGNACIÓN (id -> expresion $)
         else if (tokenActual.sym == sym.ID) {
             String id = (String) tokenActual.value;
+            int idLinea = tokenActual.left;
+            int idColumna = tokenActual.right;
             comer(sym.ID);
 
             if (tokenActual.sym == sym.TIPO_NUMERIN || tokenActual.sym == sym.TIPO_DUVALIN || tokenActual.sym == sym.TIPO_TXT) {
@@ -97,7 +91,8 @@ public class Parser {
                 comer(sym.FIN_SENTENCIA);
 
                 if (tabla.buscar(id) != null) {
-                    System.err.println("Error Semantico: La variable '" + id + "' ya ha sido declarada.");
+                    ManejadorErrores.reportar(TipoError.SEMANTICO, idLinea, idColumna,
+                        "La variable '" + id + "' ya ha sido declarada.", id);
                 } else {
                     if (tipo == sym.TIPO_NUMERIN && v instanceof Numerin) {
                         tabla.insertar(id, v);
@@ -109,7 +104,8 @@ public class Parser {
                         tabla.insertar(id, v);
                         System.out.println("-> Roke: " + id + " guardado con valor " + v.toString());
                     } else {
-                        System.err.println("Error de Tipo: El valor asignado no coincide con el tipo de la variable '" + id + "'.");
+                        ManejadorErrores.reportar(TipoError.SEMANTICO, idLinea, idColumna,
+                            "El valor asignado no coincide con el tipo de la variable '" + id + "'.", id);
                     }
                 }
             } else if (tokenActual.sym == sym.ASIGNACION) {
@@ -120,29 +116,30 @@ public class Parser {
 
                 Object variableExistente = tabla.buscar(id);
                 if (variableExistente == null) {
-                    System.err.println("Error Semantico: La variable '" + id + "' no ha sido definida.");
+                    ManejadorErrores.reportar(TipoError.SEMANTICO, idLinea, idColumna,
+                        "La variable '" + id + "' no ha sido definida.", id);
                 } else {
                     if (variableExistente.getClass().isInstance(v)) {
                         tabla.insertar(id, v);
                         System.out.println("-> Roke: " + id + " actualizado a " + v.toString());
                     } else {
-                        System.err.println("Error de Tipo: No puedes asignar " + v.getClass().getSimpleName() + " a " + id);
+                        ManejadorErrores.reportar(TipoError.SEMANTICO, idLinea, idColumna,
+                            "No puedes asignar " + v.getClass().getSimpleName() + " a " + id, id);
                     }
                 }
             } else {
-                System.err.println("Error Sintactico: Se esperaba un tipo o asignacion despues del identificador '" + id + "'.");
+                ManejadorErrores.reportar(TipoError.SINTACTICO, idLinea, idColumna,
+                    "Se esperaba un tipo o asignacion despues del identificador '" + id + "'.", id);
             }
         }
-        // Si no es ninguna de las anteriores, hay basura en el código
         else {
-            System.err.println("Error Sintactico: Instruccion no reconocida comenzando con " + tokenActual.value);
-            avanzar(); // Consumimos el error para no ciclar infinitamente
+            ManejadorErrores.reportar(TipoError.SINTACTICO, tokenActual.left, tokenActual.right,
+                "Instruccion no reconocida comenzando con " + tokenActual.value,
+                tokenActual.value != null ? tokenActual.value.toString() : "");
+            avanzar();
         }
     }
 
-    // --- LÓGICA DE EXPRESIONES (Precedencia) ---
-    // Nivel 1: Sumas y Restas
-    // Nivel 1: Sumas y Restas (Incluye Concatenación)
     private Object expresion() throws Exception {
         Object resultado = termino();
 
@@ -152,29 +149,27 @@ public class Parser {
             Object derecha = termino();
 
             if (operador == sym.MAS) {
-                // --- LÓGICA DE CONCATENACIÓN ---
-                // Si cualquiera de los dos lados es un Txt, concatenamos
                 if (resultado instanceof Txt || derecha instanceof Txt) {
                     String val1 = (resultado != null) ? resultado.toString() : "nulo";
                     String val2 = (derecha != null) ? derecha.toString() : "nulo";
                     resultado = new Txt(val1 + val2);
-                } // --- LÓGICA DE SUMA NUMÉRICA ---
-                else if (resultado instanceof Numerin && derecha instanceof Numerin) {
+                } else if (resultado instanceof Numerin && derecha instanceof Numerin) {
                     resultado = Operacion.sumar((Numerin) resultado, (Numerin) derecha);
                 } else if (resultado instanceof Duvalin && derecha instanceof Duvalin) {
                     resultado = Operacion.sumar((Duvalin) resultado, (Duvalin) derecha);
                 } else {
-                    System.err.println("Error Semantico: Tipos incompatibles para la suma.");
+                    ManejadorErrores.reportar(TipoError.SEMANTICO, tokenActual.left, tokenActual.right,
+                        "Tipos incompatibles para la suma.");
                     return null;
                 }
             } else if (operador == sym.MENOS) {
-                // La resta no permite texto, solo números
                 if (resultado instanceof Numerin && derecha instanceof Numerin) {
                     resultado = Operacion.restar((Numerin) resultado, (Numerin) derecha);
                 } else if (resultado instanceof Duvalin && derecha instanceof Duvalin) {
                     resultado = Operacion.restar((Duvalin) resultado, (Duvalin) derecha);
                 } else {
-                    System.err.println("Error Semantico: No se puede restar texto.");
+                    ManejadorErrores.reportar(TipoError.SEMANTICO, tokenActual.left, tokenActual.right,
+                        "No se puede restar texto.");
                     return null;
                 }
             }
@@ -182,7 +177,6 @@ public class Parser {
         return resultado;
     }
 
-    // Nivel 2: Multiplicaciones y Divisiones
     private Object termino() throws Exception {
         Object resultado = factor();
 
@@ -208,7 +202,6 @@ public class Parser {
         return resultado;
     }
 
-    // Nivel 3: Valores base (IDs, Números, Textos)
     private Object factor() throws Exception {
         Object resultado = null;
 
@@ -223,37 +216,44 @@ public class Parser {
             comer(sym.VALOR_TXT);
         } else if (tokenActual.sym == sym.ID) {
             String id = (String) tokenActual.value;
+            int idLinea = tokenActual.left;
+            int idColumna = tokenActual.right;
             comer(sym.ID);
 
             resultado = tabla.buscar(id);
             if (resultado == null) {
-                System.err.println("Error: Variable '" + id + "' no definida.");
+                ManejadorErrores.reportar(TipoError.SEMANTICO, idLinea, idColumna,
+                    "Variable '" + id + "' no definida.", id);
             }
         } else {
-            System.err.println("Error Sintactico: Se esperaba un valor o variable, se encontro " + tokenActual.value);
+            ManejadorErrores.reportar(TipoError.SINTACTICO, tokenActual.left, tokenActual.right,
+                "Se esperaba un valor o variable, se encontro " + tokenActual.value,
+                tokenActual.value != null ? tokenActual.value.toString() : "");
             avanzar();
         }
 
         return resultado;
     }
 
-    // --- LÓGICA DE CONDICIONES (COMPARACIONES) ---
     private boolean condicion() throws Exception {
         Object izquierdo = expresion();
 
         if (!esComparacion(tokenActual.sym)) {
-            System.err.println("Error Sintactico [Linea " + tokenActual.left + "]: Se esperaba un operador de comparacion (==, !=, >, <, >=, <=)");
+            ManejadorErrores.reportar(TipoError.SINTACTICO, tokenActual.left, tokenActual.right,
+                "Se esperaba un operador de comparacion (==, !=, >, <, >=, <=)");
             return false;
         }
 
         int operador = tokenActual.sym;
+        int opLinea = tokenActual.left;
+        int opColumna = tokenActual.right;
         avanzar();
         Object derecho = expresion();
 
-        return evaluarComparacion(izquierdo, operador, derecho);
+        return evaluarComparacion(izquierdo, operador, derecho, opLinea, opColumna);
     }
 
-    private boolean evaluarComparacion(Object izquierdo, int operador, Object derecho) {
+    private boolean evaluarComparacion(Object izquierdo, int operador, Object derecho, int linea, int columna) {
         if (izquierdo instanceof Numerin && derecho instanceof Numerin) {
             int a = ((Numerin) izquierdo).getValor();
             int b = ((Numerin) derecho).getValor();
@@ -267,10 +267,12 @@ public class Parser {
             String b = ((Txt) derecho).getValor();
             if (operador == sym.IGUAL_A) return a.equals(b);
             if (operador == sym.DIFERENTE) return !a.equals(b);
-            System.err.println("Error Semantico: No se puede comparar texto con >, <, >=, <=");
+            ManejadorErrores.reportar(TipoError.SEMANTICO, linea, columna,
+                "No se puede comparar texto con >, <, >=, <=");
             return false;
         } else {
-            System.err.println("Error Semantico: Tipos incompatibles para comparacion");
+            ManejadorErrores.reportar(TipoError.SEMANTICO, linea, columna,
+                "Tipos incompatibles para comparacion");
             return false;
         }
     }
@@ -287,7 +289,6 @@ public class Parser {
         }
     }
 
-    // --- SALTO DE BLOQUE (Cuando la condición es falsa) ---
     private void saltarHastaLLaveC() throws Exception {
         int profundidad = 1;
         while (profundidad > 0 && tokenActual.sym != sym.EOF) {

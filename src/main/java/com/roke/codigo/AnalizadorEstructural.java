@@ -84,6 +84,28 @@ public class AnalizadorEstructural {
                 return "<cadena_texto>";
             case sym.ID:
                 return "<identificador>";
+            case sym.SI:
+                return "<sentencia_si>";
+            case sym.PARENTESIS_A:
+                return "<parentesis_a>";
+            case sym.PARENTESIS_C:
+                return "<parentesis_c>";
+            case sym.LLAVE_A:
+                return "<llave_a>";
+            case sym.LLAVE_C:
+                return "<llave_c>";
+            case sym.IGUAL_A:
+                return "<comparacion_igual>";
+            case sym.DIFERENTE:
+                return "<comparacion_diferente>";
+            case sym.MAYOR_QUE:
+                return "<comparacion_mayor>";
+            case sym.MENOR_QUE:
+                return "<comparacion_menor>";
+            case sym.MAYOR_IGUAL:
+                return "<comparacion_mayor_igual>";
+            case sym.MENOR_IGUAL:
+                return "<comparacion_menor_igual>";
             default:
                 return "<desconocido>";
         }

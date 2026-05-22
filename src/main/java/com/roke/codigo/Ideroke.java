@@ -172,13 +172,13 @@ import java_cup.runtime.Symbol;
         panelBarraHerramientasLayout.setVerticalGroup(
             panelBarraHerramientasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addComponent(btnSave, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-            .addGroup(panelBarraHerramientasLayout.createSequentialGroup()
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, panelBarraHerramientasLayout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(panelBarraHerramientasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(btnStop, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(panelBarraHerramientasLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
                     .addComponent(btnRun, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btnBuild, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(btnAnalizar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(btnStop, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btnBuild, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btnAnalizar, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
 
@@ -256,6 +256,10 @@ import java_cup.runtime.Symbol;
         }
 
         ManejadorCompilador.ejecutar(codigoFuente, textPaneTerminal, textPaneAlertas);
+
+        if (!ManejadorErrores.getInstancia().hayErrores()) {
+            ejecutarAnalisis();
+        }
     }//GEN-LAST:event_btnRunMouseClicked
 
     private void btnStopMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnStopMouseClicked
@@ -271,86 +275,88 @@ import java_cup.runtime.Symbol;
     }//GEN-LAST:event_btnSaveMouseClicked
 
     private void btnAnalizarMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnAnalizarMouseClicked
+        ejecutarAnalisis();
+    }
 
-            textpaneTabla.setText("");
-            textPaneAlertas.setText("");
+    private void ejecutarAnalisis() {
+        textpaneTabla.setText("");
+        textPaneAlertas.setText("");
 
-            StringBuilder tablaHTML = new StringBuilder("<html><body style='color:#bd93f9; font-family:sans-serif;'>");
-            tablaHTML.append("<table border='0' cellspacing='1' cellpadding='4' width='100%' bgcolor='#282a36'>");
+        StringBuilder tablaHTML = new StringBuilder("<html><body style='color:#bd93f9; font-family:sans-serif;'>");
+        tablaHTML.append("<table border='0' cellspacing='1' cellpadding='4' width='100%' bgcolor='#282a36'>");
 
-            tablaHTML.append("<tr bgcolor='#44475a'>")
-                    .append("<th>TOKEN</th>")
-                    .append("<th>LEXEMA</th>")
-                    .append("<th>PATRON</th>")
-                    .append("<th>RESERVADA</th>")
-                    .append("</tr>");
+        tablaHTML.append("<tr bgcolor='#44475a'>")
+                .append("<th>TOKEN</th>")
+                .append("<th>LEXEMA</th>")
+                .append("<th>PATRON</th>")
+                .append("<th>RESERVADA</th>")
+                .append("</tr>");
 
-            String codigo = textPaneCodigo.getText();
-            Lexer lexer = new Lexer(new java.io.StringReader(codigo));
+        String codigo = textPaneCodigo.getText();
+        Lexer lexer = new Lexer(new java.io.StringReader(codigo));
 
-            try {
-                while (true) {
-                    Symbol token = lexer.next_token();
-                    if (token.sym == sym.EOF) {
-                        break;
-                    }
-
-                    String lexema = (token.value != null) ? token.value.toString() : "—";
-                    String patron = obtenerPatronRegEx(token.sym);
-                    String tokenAmigable = obtenerTokenAmigable(token.sym, lexema);
-
-                    boolean reservada = esPalabraReservada(token.sym);
-                    String txtReservada = reservada ? "SI" : "NO";
-                    String colorFila = reservada ? "#50fa7b" : "#ff5555";
-
-                    tablaHTML.append("<tr>")
-                            .append("<td style='color:#8be9fd;'><b>").append(tokenAmigable).append("</b></td>")
-                            .append("<td style='color:#f8f8f2;'>").append(lexema).append("</td>")
-                            .append("<td style='font-family:Monospaced; color:#6272a4;'>").append(patron).append("</td>")
-                            .append("<td style='color:").append(colorFila).append(";'><b>").append(txtReservada).append("</b></td>")
-                            .append("</tr>");
+        try {
+            while (true) {
+                Symbol token = lexer.next_token();
+                if (token.sym == sym.EOF) {
+                    break;
                 }
 
-                tablaHTML.append("</table></body></html>");
-                textpaneTabla.setContentType("text/html");
-                textpaneTabla.setText(tablaHTML.toString());
+                String lexema = (token.value != null) ? token.value.toString() : "—";
+                String patron = obtenerPatronRegEx(token.sym);
+                String tokenAmigable = obtenerTokenAmigable(token.sym, lexema);
 
-            } catch (Exception e) {
-                textpaneTabla.setText("Error en el análisis léxico: " + e.getMessage());
+                boolean reservada = esPalabraReservada(token.sym);
+                String txtReservada = reservada ? "SI" : "NO";
+                String colorFila = reservada ? "#50fa7b" : "#ff5555";
+
+                tablaHTML.append("<tr>")
+                        .append("<td style='color:#8be9fd;'><b>").append(tokenAmigable).append("</b></td>")
+                        .append("<td style='color:#f8f8f2;'>").append(lexema).append("</td>")
+                        .append("<td style='font-family:Monospaced; color:#6272a4;'>").append(patron).append("</td>")
+                        .append("<td style='color:").append(colorFila).append(";'><b>").append(txtReservada).append("</b></td>")
+                        .append("</tr>");
             }
 
-            // --- Gramática: tabla de estructura gramatical ---
-            StringBuilder gramaticaHTML = new StringBuilder("<html><body style='color:#bd93f9; font-family:Monospaced; font-size:12px; background-color:#2b2b2b;'>");
-            gramaticaHTML.append("<table border='0' cellspacing='1' cellpadding='6' width='100%' bgcolor='#282a36'>");
-            gramaticaHTML.append("<tr bgcolor='#44475a'>")
-                    .append("<th>CÓDIGO</th>")
-                    .append("<th>ESTRUCTURA</th>")
-                    .append("</tr>");
+            tablaHTML.append("</table></body></html>");
+            textpaneTabla.setContentType("text/html");
+            textpaneTabla.setText(tablaHTML.toString());
 
-            try {
-                java.util.List<AnalizadorEstructural.LineaGramatica> lineas = AnalizadorEstructural.analizar(codigo);
-                for (AnalizadorEstructural.LineaGramatica lg : lineas) {
-                    String codigoEsc = lg.codigoOriginal
-                            .replace("&", "&amp;")
-                            .replace("<", "&lt;")
-                            .replace(">", "&gt;");
-                    String estEsc = lg.estructura
-                            .replace("&", "&amp;")
-                            .replace("<", "&lt;")
-                            .replace(">", "&gt;");
-                    gramaticaHTML.append("<tr>")
-                            .append("<td style='color:#f8f8f2;'>").append(codigoEsc).append("</td>")
-                            .append("<td style='color:#ffb86c;'>").append(estEsc).append("</td>")
-                            .append("</tr>");
-                }
+        } catch (Exception e) {
+            textpaneTabla.setText("Error en el análisis léxico: " + e.getMessage());
+        }
 
-                gramaticaHTML.append("</table></body></html>");
-                textPaneAlertas.setContentType("text/html");
-                textPaneAlertas.setText(gramaticaHTML.toString());
+        StringBuilder gramaticaHTML = new StringBuilder("<html><body style='color:#bd93f9; font-family:Monospaced; font-size:12px; background-color:#2b2b2b;'>");
+        gramaticaHTML.append("<table border='0' cellspacing='1' cellpadding='6' width='100%' bgcolor='#282a36'>");
+        gramaticaHTML.append("<tr bgcolor='#44475a'>")
+                .append("<th>CÓDIGO</th>")
+                .append("<th>ESTRUCTURA</th>")
+                .append("</tr>");
 
-            } catch (Exception e) {
-                textPaneAlertas.setText("Error en el análisis gramatical: " + e.getMessage());
+        try {
+            java.util.List<AnalizadorEstructural.LineaGramatica> lineas = AnalizadorEstructural.analizar(codigo);
+            for (AnalizadorEstructural.LineaGramatica lg : lineas) {
+                String codigoEsc = lg.codigoOriginal
+                        .replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;");
+                String estEsc = lg.estructura
+                        .replace("&", "&amp;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;");
+                gramaticaHTML.append("<tr>")
+                        .append("<td style='color:#f8f8f2;'>").append(codigoEsc).append("</td>")
+                        .append("<td style='color:#ffb86c;'>").append(estEsc).append("</td>")
+                        .append("</tr>");
             }
+
+            gramaticaHTML.append("</table></body></html>");
+            textPaneAlertas.setContentType("text/html");
+            textPaneAlertas.setText(gramaticaHTML.toString());
+
+        } catch (Exception e) {
+            textPaneAlertas.setText("Error en el análisis gramatical: " + e.getMessage());
+        }
     }
 
     //Roque was Here
@@ -384,6 +390,28 @@ import java_cup.runtime.Symbol;
                 return "decimal";
             case sym.VALOR_TXT:
                 return "cadena";
+            case sym.SI:
+                return "si";
+            case sym.PARENTESIS_A:
+                return "(";
+            case sym.PARENTESIS_C:
+                return ")";
+            case sym.LLAVE_A:
+                return "{";
+            case sym.LLAVE_C:
+                return "}";
+            case sym.IGUAL_A:
+                return "==";
+            case sym.DIFERENTE:
+                return "!=";
+            case sym.MAYOR_QUE:
+                return ">";
+            case sym.MENOR_QUE:
+                return "<";
+            case sym.MAYOR_IGUAL:
+                return ">=";
+            case sym.MENOR_IGUAL:
+                return "<=";
             default:
                 return "desconocido";
         }
@@ -395,6 +423,7 @@ import java_cup.runtime.Symbol;
                 || idSimb == sym.TIPO_DUVALIN
                 || idSimb == sym.TIPO_TXT
                 || idSimb == sym.VER
+                || idSimb == sym.SI
                 || idSimb == sym.ASIGNACION
                 || idSimb == sym.FIN_SENTENCIA
                 || idSimb == sym.MAS
